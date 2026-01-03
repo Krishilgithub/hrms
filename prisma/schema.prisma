@@ -95,13 +95,32 @@ model EmployeeProfile {
   position       String?
   joiningDate    DateTime?
   employeeId     String?   @unique
-  bankdetails    Json?
   dob            DateTime?
+  
+  // Private Info
+  nationality    String?
+  gender         String?
+  maritalStatus  String?
+  personalEmail  String?
+  
+  // Organizational Info
+  company        String?
+  manager        String?
+  location       String?
+  
+  // Bank & Salary Info
   basicSalary    Float     @default(50000)
+  accountNumber  String?
+  bankName       String?
+  ifscCode       String?
+  panNo          String?
+  uanNo          String?
+  empCode        String?
   
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
+
 
 model Attendance {
   id        String           @id @default(cuid())
@@ -113,6 +132,17 @@ model Attendance {
   status    AttendanceStatus @default(ABSENT)
   location  String?
   totalHours Float?
+  
+  // Break tracking
+  breakStart    DateTime?
+  breakEnd      DateTime?
+  breakDuration Float?    // in minutes
+  
+  // Late arrival
+  isLate        Boolean   @default(false)
+  lateBy        Int?      // minutes late
+  
+  notes         String?
   
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
@@ -130,6 +160,7 @@ model LeaveRequest {
   endDate   DateTime
   reason    String
   status    LeaveStatus @default(PENDING)
+  isPaid    Boolean     @default(true)
   
   approvedBy String?
   
@@ -150,6 +181,17 @@ model Payroll {
   netSalary     Float
   status        PayrollStatus @default(PENDING)
   paymentDate   DateTime?
+  
+  // Attendance-based calculation fields
+  totalWorkingDays  Int       @default(0)
+  paidLeaveDays     Int       @default(0)
+  unpaidLeaveDays   Int       @default(0)
+  absentDays        Int       @default(0)
+  presentDays       Int       @default(0)
+  payableDays       Int       @default(0)
+  dailyRate         Float     @default(0)
+  overtimeHours     Float     @default(0)
+  overtimePay       Float     @default(0)
   
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

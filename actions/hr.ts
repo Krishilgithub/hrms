@@ -5,58 +5,83 @@ import { z } from "zod"
 import { sendEmail } from "@/lib/mail"
 import { revalidatePath } from "next/cache"
 
-const createEmployeeSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(6),
-  role: z.enum(["EMPLOYEE", "HR", "ADMIN"]),
-  employeeId: z.string().min(1),
-  department: z.string().min(1),
-})
-
-export async function createEmployee(values: z.infer<typeof createEmployeeSchema>) {
+export async function createEmployee(data: { 
+  name: string
+  email: string
+  role: string
+  department: string
+  companyName?: string
+}) {
   try {
-    const { email, password, name, role, employeeId, department } = values
+    const { name, email, role, department, companyName = "Odoo India" } = data
 
+    // Check if user already exists
     const existingUser = await db.user.findUnique({ where: { email } })
     if (existingUser) return { error: "User already exists with this email." }
-    
-    const existingEmpId = await db.employeeProfile.findUnique({ where: { employeeId } })
-    if (existingEmpId) return { error: "Employee ID already assigned." }
 
-    // Create User
+    // Auto-generate employee ID
+    const { generateEmployeeId, generatePassword } = await import('@/lib/employee-utils')
+    const employeeId = await generateEmployeeId(companyName, name)
+    
+    // Auto-generate password
+    const generatedPassword = generatePassword(10)
+    
+    // Create user with employee profile
     await db.user.create({
         data: {
             name,
             email,
-            password, // In real app, hash this
+            password: generatedPassword, // In production, hash this
             role: role as "EMPLOYEE" | "HR" | "ADMIN",
             employeeProfile: {
                 create: {
                     employeeId,
                     joiningDate: new Date(),
                     department,
-                    position: role === 'HR' ? "HR Staff" : "Employee"
+                    position: role === 'HR' ? "HR Staff" : (role === 'ADMIN' ? "Administrator" : "Employee"),
+                    company: companyName
                 }
             }
         }
     })
 
+    // Send welcome email with credentials
     if (email) {
         await sendEmail(
             email,
-            "Welcome to the Team",
-            `<p>Hi ${name},</p><p>Your account has been created. Login with password: ${password}</p>`
+            "Welcome to the Team - Your Account Credentials",
+            `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>Welcome to ${companyName}!</h2>
+              <p>Hi ${name},</p>
+              <p>Your employee account has been successfully created. Here are your login credentials:</p>
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p><strong>Employee ID:</strong> ${employeeId}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Temporary Password:</strong> <code style="background: #fff; padding: 2px 6px;">${generatedPassword}</code></p>
+              </div>
+              <p style="color: #e74c3c;"><strong>⚠️ Security Notice:</strong> Please change your password after your first login.</p>
+              <p>You can log in at: <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Login Here</a></p>
+              <p>Best regards,<br/>HR Team</p>
+            </div>
+            `
         )
     }
 
-    return { success: "Employee created successfully!" }
+    revalidatePath("/dashboard/admin/employees")
+    revalidatePath("/dashboard/hr/employees")
+    return { 
+      success: "Employee created successfully! Login credentials sent to email.",
+      employeeId,
+      tempPassword: generatedPassword // Return for display to HR/Admin
+    }
 
   } catch (error) {
     console.error("Create employee error:", error)
     return { error: "Failed to create employee." }
   }
 }
+
 
 // Recruitment functions
 export async function getJobPostings() {
@@ -152,24 +177,103 @@ export async function generateHRPayroll() {
       include: { employeeProfile: true }
     })
 
+    // Helper function to calculate working days in a month (excluding weekends)
+    const getWorkingDays = (month: number, year: number) => {
+      const totalDaysInMonth = new Date(year, month, 0).getDate()
+      let workingDays = 0
+      for (let day = 1; day <= totalDaysInMonth; day++) {
+        const date = new Date(year, month - 1, day)
+        const dayOfWeek = date.getDay()
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday or Saturday
+          workingDays++
+        }
+      }
+      return workingDays
+    }
+
+    const totalWorkingDays = getWorkingDays(parseInt(currentMonth), currentYear)
+
     for (const employee of employees) {
       const basicSalary = employee.employeeProfile?.basicSalary || 50000
+
+      // Get attendance records for the month
+      const startDate = new Date(currentYear, parseInt(currentMonth) - 1, 1)
+      const endDate = new Date(currentYear, parseInt(currentMonth), 0)
+      endDate.setHours(23, 59, 59, 999)
+
+      const attendance = await db.attendance.findMany({
+        where: {
+          userId: employee.id,
+          date: { gte: startDate, lte: endDate }
+        }
+      })
+
+      const presentDays = attendance.filter((a: any) => a.status === 'PRESENT').length
+
+      // Get approved leaves for the month
+      const leaves = await db.leaveRequest.findMany({
+        where: {
+          userId: employee.id,
+          status: 'APPROVED',
+          startDate: { lte: endDate },
+          endDate: { gte: startDate }
+        }
+      })
+
+      let paidLeaveDays = 0
+      let unpaidLeaveDays = 0
+
+      leaves.forEach((leave: any) => {
+        const start = new Date(Math.max(leave.startDate.getTime(), startDate.getTime()))
+        const end = new Date(Math.min(leave.endDate.getTime(), endDate.getTime()))
+        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        
+        if (leave.isPaid) {
+          paidLeaveDays += days
+        } else {
+          unpaidLeaveDays += days
+        }
+      })
+
+      // Calculate absent days (working days not present and not on leave)
+      const accountedDays = presentDays + paidLeaveDays + unpaidLeaveDays
+      const absentDays = Math.max(0, totalWorkingDays - accountedDays)
+
+      // Calculate payable days (present + paid leaves only)
+      const payableDays = presentDays + paidLeaveDays
+
+      // Calculate salary
+      const dailyRate = basicSalary / totalWorkingDays
+      const earnedBasicSalary = dailyRate * payableDays
+      const allowances = 5000
+      const deductions = 2000
+      const netSalary = earnedBasicSalary + allowances - deductions
+
       await db.payroll.create({
         data: {
           userId: employee.id,
           month: currentMonth,
           year: currentYear,
           basicSalary: basicSalary,
-          netSalary: basicSalary + 5000 - 2000,
-          allowances: 5000,
-          deductions: 2000,
-          status: "PROCESSED"
+          netSalary: Math.round(netSalary * 100) / 100,
+          allowances: allowances,
+          deductions: deductions,
+          status: "PROCESSED",
+          // Attendance-based fields
+          totalWorkingDays,
+          paidLeaveDays,
+          unpaidLeaveDays,
+          absentDays,
+          presentDays,
+          payableDays,
+          dailyRate: Math.round(dailyRate * 100) / 100
         }
       })
     }
 
     revalidatePath("/dashboard/hr/payroll")
-    return { success: "Payroll generated successfully" }
+    revalidatePath("/dashboard/admin/payroll")
+    return { success: "Payroll generated successfully with attendance-based calculation" }
   } catch (error) {
     console.error("Generate payroll error:", error)
     return { error: "Failed to generate payroll" }

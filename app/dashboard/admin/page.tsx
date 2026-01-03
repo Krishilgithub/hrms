@@ -23,6 +23,7 @@ import { getAdminDashboardStats } from "@/actions/admin"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Link from "next/link"
 
 export default async function AdminDashboardPage() {
   const stats = await getAdminDashboardStats()
@@ -148,20 +149,25 @@ export default async function AdminDashboardPage() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-             {/* TODO: Add Quick Actions Links */}
              <div className="flex flex-col gap-2">
-                <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
-                    <div className="font-medium">Add New Employee</div>
-                    <div className="text-sm text-muted-foreground">Create a new user account</div>
-                </div>
-                <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
-                    <div className="font-medium">Run Payroll</div>
-                    <div className="text-sm text-muted-foreground">Process salaries for {new Date().toLocaleString('default', { month: 'long' })}</div>
-                </div>
-                 <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
-                    <div className="font-medium">Review Documents</div>
-                    <div className="text-sm text-muted-foreground">Verify pending uploads</div>
-                </div>
+                <Link href="/dashboard/admin/employees/new">
+                  <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
+                      <div className="font-medium">Add New Employee</div>
+                      <div className="text-sm text-muted-foreground">Create a new user account</div>
+                  </div>
+                </Link>
+                <Link href="/dashboard/admin/payroll">
+                  <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
+                      <div className="font-medium">Run Payroll</div>
+                      <div className="text-sm text-muted-foreground">Process salaries for {new Date().toLocaleString('default', { month: 'long' })}</div>
+                  </div>
+                </Link>
+                <Link href="/dashboard/admin/documents">
+                  <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
+                      <div className="font-medium">Review Documents</div>
+                      <div className="text-sm text-muted-foreground">Verify pending uploads</div>
+                  </div>
+                </Link>
              </div>
           </CardContent>
         </Card>
