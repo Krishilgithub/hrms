@@ -11,31 +11,40 @@ export async function createEmployee(data: {
   role: string
   department: string
   companyName?: string
+  password?: string
+  employeeId?: string
 }) {
   try {
-    const { name, email, role, department, companyName = "Odoo India" } = data
+    const { name, email, role, department, companyName = "Odoo India", password, employeeId: providedId } = data
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({ where: { email } })
     if (existingUser) return { error: "User already exists with this email." }
 
-    // Auto-generate employee ID
-    const { generateEmployeeId, generatePassword } = await import('@/lib/employee-utils')
-    const employeeId = await generateEmployeeId(companyName, name)
-    
-    // Auto-generate password
-    const generatedPassword = generatePassword(10)
+    // Use provided or auto-generate employee ID
+    let finalEmployeeId = providedId
+    if (!finalEmployeeId) {
+       const { generateEmployeeId } = await import('@/lib/employee-utils')
+       finalEmployeeId = await generateEmployeeId(companyName, name)
+    }
+
+    // Use provided or auto-generate password
+    let finalPassword = password
+    if (!finalPassword) {
+       const { generatePassword } = await import('@/lib/employee-utils')
+       finalPassword = generatePassword(10)
+    }
     
     // Create user with employee profile
     await db.user.create({
         data: {
             name,
             email,
-            password: generatedPassword, // In production, hash this
+            password: finalPassword, // In production, hash this
             role: role as "EMPLOYEE" | "HR" | "ADMIN",
             employeeProfile: {
                 create: {
-                    employeeId,
+                    employeeId: finalEmployeeId,
                     joiningDate: new Date(),
                     department,
                     position: role === 'HR' ? "HR Staff" : (role === 'ADMIN' ? "Administrator" : "Employee"),
@@ -56,9 +65,9 @@ export async function createEmployee(data: {
               <p>Hi ${name},</p>
               <p>Your employee account has been successfully created. Here are your login credentials:</p>
               <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Employee ID:</strong> ${employeeId}</p>
+                <p><strong>Employee ID:</strong> ${finalEmployeeId}</p>
                 <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Temporary Password:</strong> <code style="background: #fff; padding: 2px 6px;">${generatedPassword}</code></p>
+                <p><strong>Password:</strong> <code style="background: #fff; padding: 2px 6px;">${finalPassword}</code></p>
               </div>
               <p style="color: #e74c3c;"><strong>⚠️ Security Notice:</strong> Please change your password after your first login.</p>
               <p>You can log in at: <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Login Here</a></p>
