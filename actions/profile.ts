@@ -15,7 +15,16 @@ const profileSchema = z.object({
   nationality: z.string().optional(),
   maritalStatus: z.string().optional(),
   personalEmail: z.string().email().optional().or(z.literal("")),
+  // Bank Info
+  accountNumber: z.string().optional(),
+  bankName: z.string().optional(),
+  ifscCode: z.string().optional(),
+  panNo: z.string().optional(),
+  uanNo: z.string().optional(),
+  empCode: z.string().optional(),
 })
+
+// ...
 
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, "Current password is required"),
@@ -79,7 +88,10 @@ export async function updateProfile(values: z.infer<typeof profileSchema>) {
   }
 
   try {
-    const { name, phone, address, dob, gender, nationality, maritalStatus, personalEmail } = values
+    const { 
+        name, phone, address, dob, gender, nationality, maritalStatus, personalEmail,
+        accountNumber, bankName, ifscCode, panNo, uanNo, empCode
+    } = values
 
     if (name) {
         await db.user.update({
@@ -98,7 +110,8 @@ export async function updateProfile(values: z.infer<typeof profileSchema>) {
             gender,
             nationality,
             maritalStatus,
-            personalEmail
+            personalEmail,
+            accountNumber, bankName, ifscCode, panNo, uanNo, empCode
         },
         update: { 
             phone, 
@@ -107,7 +120,8 @@ export async function updateProfile(values: z.infer<typeof profileSchema>) {
             gender,
             nationality,
             maritalStatus,
-            personalEmail
+            personalEmail,
+            accountNumber, bankName, ifscCode, panNo, uanNo, empCode
         }
     })
 
