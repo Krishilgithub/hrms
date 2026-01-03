@@ -62,6 +62,7 @@ export default async function AdminEmployeesPage() {
   // Combine employees with their attendance status
   const employeesWithStatus = employees.map(emp => ({
     ...emp,
+    name: emp.name || "Unknown",
     todayAttendance: leaveUserIds.has(emp.id) 
       ? { status: 'ON_LEAVE', checkIn: null }
       : attendanceMap.get(emp.id)
