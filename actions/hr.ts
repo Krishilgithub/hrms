@@ -110,7 +110,7 @@ export async function updateCandidateStatus(id: string, status: string) {
   try {
     await db.candidate.update({
       where: { id },
-      data: { status }
+      data: { status: status as any }
     })
     revalidatePath("/dashboard/hr/recruitment")
     return { success: "Candidate status updated" }
