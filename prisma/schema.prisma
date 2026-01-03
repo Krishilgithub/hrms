@@ -117,6 +117,47 @@ model EmployeeProfile {
   uanNo          String?
   empCode        String?
   
+  // Salary Structure (Admin configurable)
+  monthlyWage    Float?    @default(50000)   // Base monthly wage
+  yearlyWage     Float?    @default(600000)  // Calculated as monthlyWage * 12
+  workingDaysPerWeek Int?  @default(5)       // For calculations
+  breakTimeHours Float?    @default(1)       // Break time per day
+  
+  // Salary Components (Auto-calculated)
+  basicPercent   Float?    @default(50)      // % of wage
+  basicAmount    Float?    @default(25000)   // Auto-calculated
+  
+  hraPercent     Float?    @default(50)      // % of basic
+  hraAmount      Float?    @default(12500)   // Auto-calculated
+  
+  standardAllowance Float? @default(4167)    // Fixed amount
+  
+  performanceBonusPercent Float? @default(8.33)  // % of wage
+  performanceBonusAmount  Float? @default(4165)  // Auto-calculated
+  
+  ltaPercent     Float?    @default(8.333)   // % of wage
+  ltaAmount      Float?    @default(4166.5)  // Auto-calculated
+  
+  fixedAllowance Float?    @default(0)       // Wage - total of all components
+  
+  // Deductions
+  pfPercent      Float?    @default(12)      // PF contribution %
+  pfAmount       Float?    @default(3000)    // Auto-calculated from basic
+  
+  professionalTax Float?   @default(200)     // Fixed amount
+  
+  // Employer Contributions
+  employerPFPercent Float? @default(12)      // Employer PF %
+  employerPFAmount  Float? @default(3000)    // Auto-calculated
+  
+  // Net Salary (Auto-calculated)
+  grossSalary    Float?    @default(50000)   // Sum of all components
+  totalDeductions Float?   @default(3200)    // PF + PT
+  netSalary      Float?    @default(46800)   // Gross - Deductions
+  
+  // Resume
+  resumeUrl      String?   // Stores resume as base64 data URL or file path
+  
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }

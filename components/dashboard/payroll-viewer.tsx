@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Download, DollarSign, CalendarCheck, TrendingUp } from "lucide-react"
+import { format } from "date-fns"
 
 type PayrollViewerProps = {
     payrollRecords: {
@@ -23,7 +24,9 @@ export function PayrollViewer({ payrollRecords }: PayrollViewerProps) {
   
   const latestRecord = payrollRecords[0]
   const latestSalary = latestRecord?.netSalary || 0
-  const lastPaymentDate = latestRecord?.paymentDate ? new Date(latestRecord.paymentDate).toLocaleDateString() : (latestRecord?.createdAt ? new Date(latestRecord.createdAt).toLocaleDateString() : "N/A")
+  const lastPaymentDate = latestRecord?.paymentDate 
+    ? format(new Date(latestRecord.paymentDate), "MM/dd/yyyy")
+    : (latestRecord?.createdAt ? format(new Date(latestRecord.createdAt), "MM/dd/yyyy") : "N/A")
   const taxDeductions = latestRecord?.deductions || 0
   const benefitBalance = latestRecord?.allowances || 0
   
@@ -118,7 +121,7 @@ export function PayrollViewer({ payrollRecords }: PayrollViewerProps) {
                         {payrollRecords.map((record) => (
                              <TableRow key={record.id}>
                                 <TableCell className="font-medium">{record.month}</TableCell>
-                                <TableCell>{new Date(record.createdAt).toLocaleDateString()}</TableCell>
+                                <TableCell>{format(new Date(record.createdAt), "MM/dd/yyyy")}</TableCell>
                                 <TableCell>${(record.netSalary + 450).toLocaleString()}</TableCell>
                                 <TableCell className="font-bold">${record.netSalary.toLocaleString()}</TableCell>
                                 <TableCell>

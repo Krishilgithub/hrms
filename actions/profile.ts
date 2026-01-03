@@ -7,10 +7,14 @@ import { cookies } from "next/headers"
 import { sendEmail } from "@/lib/mail"
 
 const profileSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   phone: z.string().optional(),
   address: z.string().optional(),
-  name: z.string().min(1, "Name is required"),
   dob: z.date().optional(),
+  gender: z.string().optional(),
+  nationality: z.string().optional(),
+  maritalStatus: z.string().optional(),
+  personalEmail: z.string().email().optional().or(z.literal("")),
 })
 
 const passwordSchema = z.object({
@@ -32,29 +36,38 @@ export async function uploadProfileImage(formData: FormData) {
         return { error: "No file provided" }
     }
 
-    // Mock Upload
-    const fileName = file.name
-    // Use a reliable placeholder service or just a simulation for now since we don't have real S3
-    // For this specific request, user wants to see it. 
-    // We can try to use a data URI if the file is small, or a public placeholder. 
-    // Let's use a consistent mock URL pattern that the frontend could strictly conceptually render, 
-    // but for the "User uploaded photo" to show, we might need a real Base64 return if we aren't using S3.
-    // Let's return a fake URL but in a real app this would be the S3 URL.
-    // To actually make it "Show" in this local env without S3, we can't easily unless we serve it.
-    // WE WILL USE A PUBLIC AVATAR SERVICE WITH A HASH for demo, OR we can stick to the "Mock" URL and frontend just shows a generic if it detects mock.
-    // BUT user asked "allow user to upload". 
-    // Let's try to infer a "real" persistent URL? No.
-    // I will simulate it by returning a random Avatar URL to show "Change".
-    const mockUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${fileName}-${Date.now()}`
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        return { error: "Please upload an image file" }
+    }
 
-    await db.user.update({
-        where: { id: userId },
-        data: { image: mockUrl }
-    })
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        return { error: "Image size must be less than 5MB" }
+    }
 
-    revalidatePath("/dashboard/employee")
-    revalidatePath("/dashboard/employee/profile")
-    return { success: "Profile photo updated", imageUrl: mockUrl }
+    try {
+        // Convert image to base64 data URL for storage in database
+        // In production, you would upload to S3/Cloudinary/etc instead
+        const bytes = await file.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+        const base64 = buffer.toString('base64')
+        const dataUrl = `data:${file.type};base64,${base64}`
+
+        await db.user.update({
+            where: { id: userId },
+            data: { image: dataUrl }
+        })
+
+        revalidatePath("/dashboard/employee/profile")
+        revalidatePath("/dashboard/employee")
+        revalidatePath("/dashboard/admin/employees")
+        
+        return { success: "Profile photo uploaded successfully!" }
+    } catch (error) {
+        console.error("Upload profile image error:", error)
+        return { error: "Failed to upload profile photo" }
+    }
 }
 
 export async function updateProfile(values: z.infer<typeof profileSchema>) {
@@ -66,7 +79,7 @@ export async function updateProfile(values: z.infer<typeof profileSchema>) {
   }
 
   try {
-    const { name, phone, address, dob } = values
+    const { name, phone, address, dob, gender, nationality, maritalStatus, personalEmail } = values
 
     await db.user.update({
         where: { id: userId },
@@ -75,8 +88,25 @@ export async function updateProfile(values: z.infer<typeof profileSchema>) {
 
     await db.employeeProfile.upsert({
         where: { userId },
-        create: { userId, phone, address, dob },
-        update: { phone, address, dob }
+        create: { 
+            userId, 
+            phone, 
+            address, 
+            dob,
+            gender,
+            nationality,
+            maritalStatus,
+            personalEmail
+        },
+        update: { 
+            phone, 
+            address, 
+            dob,
+            gender,
+            nationality,
+            maritalStatus,
+            personalEmail
+        }
     })
 
     const user = await db.user.findUnique({ where: { id: userId } })
@@ -131,6 +161,56 @@ export async function changePassword(values: z.infer<typeof passwordSchema>) {
     return { success: "Password updated successfully!" }
 }
 
+export async function uploadResume(formData: FormData) {
+    const cookieStore = await cookies()
+    const userId = cookieStore.get("user_session")?.value
+  
+    if (!userId) {
+      return { error: "Unauthorized" }
+    }
+
+    const file = formData.get("file") as File
+    
+    if (!file) {
+        return { error: "No file provided" }
+    }
+
+    // Validate file type - PDF only
+    if (file.type !== 'application/pdf') {
+        return { error: "Please upload a PDF file" }
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        return { error: "Resume size must be less than 10MB" }
+    }
+
+    try {
+        // Convert PDF to base64 data URL for storage
+        const bytes = await file.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+        const base64 = buffer.toString('base64')
+        const dataUrl = `data:${file.type};base64,${base64}`
+
+        await db.employeeProfile.upsert({
+            where: { userId },
+            create: { 
+                userId, 
+                resumeUrl: dataUrl 
+            },
+            update: { 
+                resumeUrl: dataUrl 
+            }
+        })
+
+        revalidatePath("/dashboard/employee/profile")
+        
+        return { success: "Resume uploaded successfully!" }
+    } catch (error) {
+        console.error("Upload resume error:", error)
+        return { error: "Failed to upload resume" }
+    }
+}
 
 export async function uploadDocument(formData: FormData) {
     const cookieStore = await cookies()

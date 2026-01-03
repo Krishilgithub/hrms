@@ -23,10 +23,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { Loader2, CalendarIcon, Pencil } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
+import { Loader2, Pencil } from "lucide-react"
+import { DateOfBirthPicker } from "@/components/ui/date-of-birth-picker"
 import { format } from "date-fns"
 
 const privateInfoSchema = z.object({
@@ -358,33 +356,10 @@ export function ProfileForm({ user, employeeProfile }: ProfileFormProps) {
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
                             <FormLabel>Date of Birth</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    className={cn(
-                                      "w-full pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date > new Date() || date < new Date("1900-01-01")
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
+                            <DateOfBirthPicker
+                              value={field.value}
+                              onChange={field.onChange}
+                            />
                             <FormMessage />
                           </FormItem>
                         )}
