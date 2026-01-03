@@ -7,7 +7,7 @@ import { cookies } from "next/headers"
 import { sendEmail } from "@/lib/mail"
 
 const profileSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Name is required").optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
   dob: z.date().optional(),
@@ -81,10 +81,12 @@ export async function updateProfile(values: z.infer<typeof profileSchema>) {
   try {
     const { name, phone, address, dob, gender, nationality, maritalStatus, personalEmail } = values
 
-    await db.user.update({
-        where: { id: userId },
-        data: { name }
-    })
+    if (name) {
+        await db.user.update({
+            where: { id: userId },
+            data: { name }
+        })
+    }
 
     await db.employeeProfile.upsert({
         where: { userId },
