@@ -50,12 +50,12 @@ export async function createEmployee(values: z.infer<typeof createEmployeeSchema
         )
     }
 
-    revalidatePath("/dashboard/hr/employees")
     return { success: "Employee created successfully!" }
 
   } catch (error) {
     console.error("Create employee error:", error)
     return { error: "Failed to create employee." }
+  }
 }
 
 // Recruitment functions
