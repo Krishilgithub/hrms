@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Loader2 } from "lucide-react"
+import { register } from "@/actions/register"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -61,19 +62,34 @@ export default function RegisterPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
+    try {
+        // Enforce upper case for Role match with Prisma Enum
+        const roleUpper = values.role.toUpperCase() as "EMPLOYEE" | "HR" | "ADMIN"
+        
+        const payload = {
+            ...values,
+            role: roleUpper
+        }
 
-    // Mock register logic
-    setTimeout(() => {
-      setIsLoading(false)
-      toast.success("Account created successfully!")
-      
-      // Auto login redirect
-      if (values.role === "admin" || values.role === "hr") {
-        router.push("/dashboard/admin")
-      } else {
-        router.push("/dashboard/employee")
-      }
-    }, 1000)
+        const data = await register(payload)
+
+        if (data.error) {
+            toast.error(data.error)
+        } else {
+            toast.success("Account created successfully!")
+            if (data.role === "ADMIN") {
+                router.push("/dashboard/admin")
+            } else if (data.role === "HR") {
+                router.push("/dashboard/hr")
+            } else {
+                router.push("/dashboard/employee")
+            }
+        }
+    } catch (error) {
+        toast.error("Something went wrong.")
+    } finally {
+        setIsLoading(false)
+    }
   }
 
   return (

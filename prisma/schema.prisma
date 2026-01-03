@@ -70,6 +70,18 @@ model User {
   attendance      Attendance[]
   leaveRequests   LeaveRequest[]
   payrolls        Payroll[]
+  documents       Document[]
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  type      String   @default("OTHER") // PDF, IMG, etc.
+  url       String   // For now, might just be a filename or simulated path
+  
+  createdAt DateTime @default(now())
 }
 
 model EmployeeProfile {
@@ -84,6 +96,7 @@ model EmployeeProfile {
   joiningDate    DateTime?
   employeeId     String?   @unique
   bankdetails    Json?
+  dob            DateTime?
   
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -98,6 +111,7 @@ model Attendance {
   checkOut  DateTime?
   status    AttendanceStatus @default(ABSENT)
   location  String?
+  totalHours Float?
   
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt

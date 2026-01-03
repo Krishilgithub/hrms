@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { db } from "@/lib/db"
 import { cookies } from "next/headers"
+import Link from "next/link"
 
 export default async function EmployeeDashboardPage() {
   const cookieStore = await cookies()
@@ -129,7 +130,7 @@ export default async function EmployeeDashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-              <button className="flex items-center p-3 rounded-lg border hover:bg-muted transition-colors text-left sm:text-sm">
+              <Link href="/dashboard/employee/attendance" className="flex items-center p-3 rounded-lg border hover:bg-muted transition-colors text-left sm:text-sm">
                   <div className="h-9 w-9 flex items-center justify-center rounded-full bg-primary/10 text-primary mr-3">
                       <Clock className="h-5 w-5" />
                   </div>
@@ -137,8 +138,8 @@ export default async function EmployeeDashboardPage() {
                       <div className="font-medium">Mark Attendance</div>
                       <div className="text-xs text-muted-foreground">Check-in for today</div>
                   </div>
-              </button>
-               <button className="flex items-center p-3 rounded-lg border hover:bg-muted transition-colors text-left sm:text-sm">
+              </Link>
+               <Link href="/dashboard/employee/leaves" className="flex items-center p-3 rounded-lg border hover:bg-muted transition-colors text-left sm:text-sm">
                    <div className="h-9 w-9 flex items-center justify-center rounded-full bg-orange-500/10 text-orange-500 mr-3">
                       <CalendarDays className="h-5 w-5" />
                   </div>
@@ -146,7 +147,7 @@ export default async function EmployeeDashboardPage() {
                       <div className="font-medium">Apply Leave</div>
                       <div className="text-xs text-muted-foreground">Request time off</div>
                   </div>
-              </button>
+              </Link>
           </CardContent>
         </Card>
       </div>

@@ -43,3 +43,10 @@ export async function login(values: z.infer<typeof loginSchema>) {
       role: user.role
   }
 }
+
+export async function logout() {
+  const { cookies } = await import("next/headers")
+  const cookieStore = await cookies()
+  cookieStore.delete("user_session")
+  redirect("/login")
+}

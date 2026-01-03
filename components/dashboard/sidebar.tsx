@@ -62,7 +62,7 @@ export function Sidebar({ className, role }: SidebarProps) {
           </div>
         </div>
       </div>
-      <div className="absolute bottom-4 left-0 w-full px-4">
+      <div className="absolute bottom-4 left-0 px-4">
           <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">
               <LogOut className="mr-2 h-4 w-4" />
               Logout
