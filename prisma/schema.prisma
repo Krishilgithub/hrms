@@ -1,0 +1,175 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  HR
+  EMPLOYEE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  ON_LEAVE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LeaveType {
+  SICK
+  CASUAL
+  PRIVILEGE
+  UNPAID
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+  DRAFT
+}
+
+enum CandidateStatus {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFERED
+  HIRED
+  REJECTED
+}
+
+enum PayrollStatus {
+  PENDING
+  PROCESSED
+  PAID
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          Role      @default(EMPLOYEE)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  employeeProfile EmployeeProfile?
+  attendance      Attendance[]
+  leaveRequests   LeaveRequest[]
+  payrolls        Payroll[]
+}
+
+model EmployeeProfile {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  phone          String?
+  address        String?
+  department     String?
+  position       String?
+  joiningDate    DateTime?
+  employeeId     String?   @unique
+  bankdetails    Json?
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  date      DateTime         @default(now()) @db.Date
+  checkIn   DateTime?
+  checkOut  DateTime?
+  status    AttendanceStatus @default(ABSENT)
+  location  String?
+  
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([userId, date])
+}
+
+model LeaveRequest {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  
+  type      LeaveType
+  startDate DateTime
+  endDate   DateTime
+  reason    String
+  status    LeaveStatus @default(PENDING)
+  
+  approvedBy String?
+  
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Payroll {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  
+  month         String
+  year          Int
+  basicSalary   Float
+  allowances    Float         @default(0)
+  deductions    Float         @default(0)
+  netSalary     Float
+  status        PayrollStatus @default(PENDING)
+  paymentDate   DateTime?
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model JobPosting {
+  id          String      @id @default(cuid())
+  title       String
+  department  String
+  location    String
+  type        String
+  description String      @db.Text
+  requirements String?    @db.Text
+  salaryRange String?
+  status      JobStatus   @default(OPEN)
+  postedDate  DateTime    @default(now())
+  
+  candidates  Candidate[]
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Candidate {
+  id           String          @id @default(cuid())
+  jobPostingId String
+  jobPosting   JobPosting      @relation(fields: [jobPostingId], references: [id])
+  
+  name         String
+  email        String
+  phone        String?
+  resumeUrl    String?
+  status       CandidateStatus @default(APPLIED)
+  notes        String?         @db.Text
+  
+  appliedDate  DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
