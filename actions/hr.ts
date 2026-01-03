@@ -81,8 +81,8 @@ export async function createEmployee(data: {
     revalidatePath("/dashboard/hr/employees")
     return { 
       success: "Employee created successfully! Login credentials sent to email.",
-      employeeId,
-      tempPassword: generatedPassword // Return for display to HR/Admin
+      employeeId: finalEmployeeId,
+      tempPassword: finalPassword // Return for display to HR/Admin
     }
 
   } catch (error) {
