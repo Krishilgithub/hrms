@@ -77,13 +77,13 @@ export default function RegisterPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     try {
-      // For now, we'll register as ADMIN by default
       const payload = {
         name: values.name,
         email: values.email,
+        phone: values.phone,
         password: values.password,
-        role: "ADMIN" as const,
-        employeeId: "ADMIN001", // Auto-generate in production
+        companyName: values.companyName,
+        companyLogo: logoPreview || undefined,
       }
 
       const data = await register(payload)

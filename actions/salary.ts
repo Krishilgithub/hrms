@@ -17,7 +17,7 @@ interface SalaryComponents {
   employerPFPercent?: number
 }
 
-export function calculateSalaryComponents(data: SalaryComponents) {
+export async function calculateSalaryComponents(data: SalaryComponents) {
   const {
     monthlyWage,
     basicPercent = 50,
@@ -81,7 +81,7 @@ export function calculateSalaryComponents(data: SalaryComponents) {
 
 export async function updateEmployeeSalary(userId: string, salaryData: SalaryComponents) {
   try {
-    const calculated = calculateSalaryComponents(salaryData)
+    const calculated = await calculateSalaryComponents(salaryData)
 
     await db.employeeProfile.update({
       where: { userId },

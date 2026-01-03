@@ -46,16 +46,13 @@ export async function register(values: z.infer<typeof registerSchema>) {
     // Generate Login ID based on the format from the image
     const loginId = generateLoginId(companyName, name, joiningYear, serialNumber)
 
-    // Auto-generate password (as per note in the image)
-    const generatedPassword = generatePassword(12)
-
-    // Create User with auto-generated loginId and password
+    // Create User with auto-generated loginId
     const user = await db.user.create({
         data: {
             name,
             email,
             phone,
-            password: generatedPassword, // Auto-generated password
+            password: password, // Use provided password
             loginId, // Auto-generated login ID
             companyName,
             companyLogo,
@@ -65,13 +62,15 @@ export async function register(values: z.infer<typeof registerSchema>) {
                     employeeId: loginId,
                     joiningDate: new Date(),
                     department: "Management",
-                    position: "Admin"
+                    position: "Admin",
+                    phone: phone, // Also save phone in profile
+                    company: companyName // Also save company in profile
                 }
             }
         }
     })
 
-    // Send Welcome Email with Login ID and Password
+    // Send Welcome Email with Login ID
     if (email) {
         await sendEmail(
             email,
@@ -80,16 +79,15 @@ export async function register(values: z.infer<typeof registerSchema>) {
              <p>Welcome to HRMS! Your account has been successfully created.</p>
              <p><strong>Your Login Credentials:</strong></p>
              <p><strong>Login ID:</strong> ${loginId}</p>
-             <p><strong>Temporary Password:</strong> ${generatedPassword}</p>
-             <p><strong>Note:</strong> Please save these credentials securely. You can change your password after logging in using the "Turbobooster" feature mentioned in your profile settings.</p>
+             <p><strong>Password:</strong> (The password you set during registration)</p>
+             <p><strong>Note:</strong> Please save your Login ID securely.</p>
              <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Login Now</a></p>`
         )
     }
 
     return { 
-        success: "Account created successfully! Check your email for login credentials.",
+        success: "Account created successfully! Check your email for your Login ID.",
         loginId,
-        generatedPassword,
         role: user.role
     }
 
