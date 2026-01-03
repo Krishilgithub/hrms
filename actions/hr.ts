@@ -56,5 +56,118 @@ export async function createEmployee(values: z.infer<typeof createEmployeeSchema
   } catch (error) {
     console.error("Create employee error:", error)
     return { error: "Failed to create employee." }
+}
+
+// Recruitment functions
+export async function getJobPostings() {
+  try {
+    const jobs = await db.jobPosting.findMany({
+      orderBy: { createdAt: 'desc' }
+    })
+    return jobs
+  } catch (error) {
+    console.error("Get job postings error:", error)
+    return []
+  }
+}
+
+export async function createJobPosting(data: { title: string, description: string, department: string, requirements: string }) {
+  try {
+    await db.jobPosting.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        department: data.department,
+        requirements: data.requirements,
+        status: 'OPEN'
+      }
+    })
+    revalidatePath("/dashboard/hr/recruitment")
+    return { success: "Job posting created successfully" }
+  } catch (error) {
+    console.error("Create job posting error:", error)
+    return { error: "Failed to create job posting" }
+  }
+}
+
+export async function getCandidates(jobId?: string) {
+  try {
+    const candidates = await db.candidate.findMany({
+      where: jobId ? { jobId } : undefined,
+      include: { job: true },
+      orderBy: { appliedAt: 'desc' }
+    })
+    return candidates
+  } catch (error) {
+    console.error("Get candidates error:", error)
+    return []
+  }
+}
+
+export async function updateCandidateStatus(id: string, status: string) {
+  try {
+    await db.candidate.update({
+      where: { id },
+      data: { status }
+    })
+    revalidatePath("/dashboard/hr/recruitment")
+    return { success: "Candidate status updated" }
+  } catch (error) {
+    console.error("Update candidate status error:", error)
+    return { error: "Failed to update candidate status" }
+  }
+}
+
+// Payroll functions
+export async function getHRPayrollRecords() {
+  try {
+    const payrolls = await db.payroll.findMany({
+      include: { user: true },
+      orderBy:{ createdAt: 'desc' }
+    })
+    return payrolls
+  } catch (error) {
+    console.error("Get payroll records error:", error)
+    return []
+  }
+}
+
+export async function generateHRPayroll() {
+  try {
+    const currentMonth = new Date().getMonth() + 1
+    const currentYear = new Date().getFullYear()
+
+    const existing = await db.payroll.findFirst({
+      where: { month: currentMonth, year: currentYear }
+    })
+
+    if (existing) {
+      return { error: "Payroll already generated for this month" }
+    }
+
+    const employees = await db.user.findMany({
+      where: { role: 'EMPLOYEE' },
+      include: { employeeProfile: true }
+    })
+
+    for (const employee of employees) {
+      await db.payroll.create({
+        data: {
+          userId: employee.id,
+          month: currentMonth,
+          year: currentYear,
+          netSalary: employee.employeeProfile?.basicSalary || 50000,
+          allowances: 5000,
+          deductions: 2000,
+          status: "PROCESSED"
+        }
+      })
+    }
+
+    revalidatePath("/dashboard/hr/payroll")
+    return { success: "Payroll generated successfully" }
+  } catch (error) {
+    console.error("Generate payroll error:", error)
+    return { error: "Failed to generate payroll" }
   }
 }
