@@ -136,7 +136,7 @@ export async function getHRPayrollRecords() {
 
 export async function generateHRPayroll() {
   try {
-    const currentMonth = new Date().getMonth() + 1
+    const currentMonth = String(new Date().getMonth() + 1)
     const currentYear = new Date().getFullYear()
 
     const existing = await db.payroll.findFirst({
@@ -153,12 +153,14 @@ export async function generateHRPayroll() {
     })
 
     for (const employee of employees) {
+      const basicSalary = employee.employeeProfile?.basicSalary || 50000
       await db.payroll.create({
         data: {
           userId: employee.id,
           month: currentMonth,
           year: currentYear,
-          netSalary: employee.employeeProfile?.basicSalary || 50000,
+          basicSalary: basicSalary,
+          netSalary: basicSalary + 5000 - 2000,
           allowances: 5000,
           deductions: 2000,
           status: "PROCESSED"
