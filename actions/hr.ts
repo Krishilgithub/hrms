@@ -79,6 +79,8 @@ export async function createJobPosting(data: { title: string, description: strin
         description: data.description,
         department: data.department,
         requirements: data.requirements,
+        location: "Remote",
+        type: "Full-time",
         status: 'OPEN'
       }
     })
