@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export type Employee = {
     id: string
@@ -142,8 +143,16 @@ export const columns: ColumnDef<Employee>[] = [
               Copy Employee ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View details</DropdownMenuItem>
-            <DropdownMenuItem>Edit employee</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/hr/employees/${employee.id}`}>
+                View details
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/hr/employees/${employee.id}/edit`}>
+                Edit employee
+              </Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )
