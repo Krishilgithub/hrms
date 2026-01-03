@@ -46,7 +46,7 @@ const faqs = [
 export function FAQ() {
   return (
     <section id="faq" className="py-12 md:py-16 lg:py-24">
-      <div className="container max-w-4xl">
+      <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -57,7 +57,7 @@ export function FAQ() {
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Frequently Asked Questions
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Everything you need to know about Dayflow
           </p>
         </motion.div>
@@ -67,11 +67,12 @@ export function FAQ() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="max-w-3xl mx-auto"
         >
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
               <AccordionItem key={index} value={`item-${index}`}>
-                <AccordionTrigger className="text-left">
+                <AccordionTrigger className="text-left hover:no-underline">
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
@@ -94,7 +95,7 @@ export function FAQ() {
           </p>
           <a 
             href="mailto:support@dayflow.com" 
-            className="text-primary hover:underline font-semibold"
+            className="text-primary hover:underline font-semibold text-lg"
           >
             Contact our support team →
           </a>

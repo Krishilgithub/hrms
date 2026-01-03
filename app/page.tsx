@@ -13,13 +13,13 @@ export default function Home() {
       <LandingNavbar />
       <main className="flex-1">
         <Hero />
-        <Stats />
+        {/* <Stats /> */}
         <Features />
-        <Testimonials />
+        {/* <Testimonials /> */}
         <Pricing />
         <FAQ />
       </main>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   )
 }

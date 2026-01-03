@@ -120,17 +120,17 @@ export function Hero() {
          initial={{ opacity: 0, scale: 0.95 }}
          animate={{ opacity: 1, scale: 1 }}
          transition={{ duration: 0.8, delay: 0.5 }}
-         className="container mt-16 max-w-6xl mx-auto rounded-2xl border-2 border-border bg-background/95 shadow-2xl overflow-hidden backdrop-blur-sm sm:mt-20"
+         className="container mt-16 max-w-6xl mx-auto rounded-2xl border-2 border-border/50 bg-background/95 shadow-2xl overflow-hidden backdrop-blur-sm sm:mt-20 hover:border-primary/30 transition-colors"
        >
-          <div className="aspect-[16/9] w-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900/50 dark:via-blue-900/20 dark:to-purple-900/20 flex items-center justify-center relative overflow-hidden">
-             {/* Decorative elements */}
-             <div className="absolute inset-0 bg-grid-white/10 [mask-image:radial-gradient(white,transparent_85%)]" />
-             <div className="relative z-10 text-center">
-               <div className="inline-flex items-center gap-2 bg-white/90 dark:bg-gray-800/90 px-6 py-3 rounded-full shadow-lg backdrop-blur">
-                 <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse" />
-                 <span className="text-sm font-semibold text-foreground">Dashboard Preview</span>
-               </div>
-               <p className="mt-4 text-muted-foreground">Interactive demo coming soon</p>
+          <div className="relative w-full aspect-[16/9]">
+             <img 
+               src="/dashboard-preview.png" 
+               alt="Dayflow Dashboard Preview" 
+               className="w-full h-full object-cover"
+             />
+             <div className="absolute top-4 right-4 inline-flex items-center gap-2 bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full shadow-lg backdrop-blur">
+               <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+               <span className="text-xs font-semibold text-foreground">Live Demo</span>
              </div>
           </div>
        </motion.div>
