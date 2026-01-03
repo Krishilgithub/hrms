@@ -95,9 +95,9 @@ export async function createJobPosting(data: { title: string, description: strin
 export async function getCandidates(jobId?: string) {
   try {
     const candidates = await db.candidate.findMany({
-      where: jobId ? { jobId } : undefined,
-      include: { job: true },
-      orderBy: { appliedAt: 'desc' }
+      where: jobId ? { jobPostingId: jobId } : undefined,
+      include: { jobPosting: true },
+      orderBy: { appliedDate: 'desc' }
     })
     return candidates
   } catch (error) {
