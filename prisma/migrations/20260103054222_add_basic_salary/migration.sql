@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "EmployeeProfile" ADD COLUMN     "basicSalary" DOUBLE PRECISION NOT NULL DEFAULT 50000;

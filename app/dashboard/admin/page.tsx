@@ -19,21 +19,13 @@ import {
   DollarSign,
   Users,
 } from "lucide-react"
-import { db } from "@/lib/db"
+import { getAdminDashboardStats } from "@/actions/admin"
+import { format } from "date-fns"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default async function AdminDashboardPage() {
-  const totalEmployees = await db.user.count({ 
-      where: { role: 'EMPLOYEE' } 
-  })
-  
-  const hrCount = await db.user.count({
-      where: { role: 'HR' }
-  })
-
-  // Mocking other stats for now as we don't have attendance/payroll data yet
-  const pendingLeaves = await db.leaveRequest.count({
-      where: { status: 'PENDING' }
-  })
+  const stats = await getAdminDashboardStats()
   
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -49,33 +41,21 @@ export default async function AdminDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalEmployees}</div>
+            <div className="text-2xl font-bold">{stats.totalEmployees}</div>
             <p className="text-xs text-muted-foreground">
-              Registered in system
+              + {stats.hrCount} HR Managers
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              HR Managers
+              Pending Leaves
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{hrCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Department Leads
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Leaves</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingLeaves}</div>
+            <div className="text-2xl font-bold">{stats.pendingLeaves}</div>
             <p className="text-xs text-muted-foreground">
               Requires attention
             </p>
@@ -84,14 +64,28 @@ export default async function AdminDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Payroll
+              Attendance Today
+            </CardTitle>
+             <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.attendanceStats.percentage}%</div>
+            <p className="text-xs text-muted-foreground">
+               {stats.attendanceStats.present} / {stats.attendanceStats.total} Present
+            </p>
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Current Payroll
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">${stats.totalPayroll.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              No payroll data yet
+              For this month
             </p>
           </CardContent>
         </Card>
@@ -101,7 +95,7 @@ export default async function AdminDashboardPage() {
           <CardHeader>
             <CardTitle>Recent Leave Requests</CardTitle>
           </CardHeader>
-          <CardContent className="pl-2">
+          <CardContent>
              <Table>
                 <TableHeader>
                     <TableRow>
@@ -112,33 +106,63 @@ export default async function AdminDashboardPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    <TableRow>
-                        <TableCell className="font-medium">No Recent Data</TableCell>
-                        <TableCell>-</TableCell>
-                        <TableCell>-</TableCell>
-                         <TableCell className="text-right">-</TableCell>
-                    </TableRow>
+                    {stats.recentLeaves.length === 0 ? (
+                        <TableRow>
+                             <TableCell colSpan={4} className="text-center text-muted-foreground">No recent requests</TableCell>
+                        </TableRow>
+                    ) : (
+                        stats.recentLeaves.map((leave: any) => (
+                            <TableRow key={leave.id}>
+                                <TableCell className="flex items-center gap-2">
+                                     <Avatar className="h-8 w-8">
+                                        <AvatarImage src={leave.user.image || undefined} />
+                                        <AvatarFallback>{leave.user.name?.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{leave.user.name}</span>
+                                        <span className="text-xs text-muted-foreground">{leave.user.email}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="capitalize">{leave.type.toLowerCase()}</TableCell>
+                                <TableCell>
+                                    {format(new Date(leave.startDate), "MMM d")} - {format(new Date(leave.endDate), "MMM d")}
+                                </TableCell>
+                                 <TableCell className="text-right">
+                                    <Badge variant={leave.status === 'PENDING' ? 'outline' : 'secondary'} className={
+                                         leave.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
+                                         leave.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 
+                                         'bg-yellow-100 text-yellow-800'
+                                    }>
+                                        {leave.status}
+                                    </Badge>
+                                 </TableCell>
+                            </TableRow>
+                        ))
+                    )}
                 </TableBody>
              </Table>
           </CardContent>
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Attendance Overview</CardTitle>
-             <div className="text-sm text-muted-foreground">Today's Presence</div>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-8">
-                 <div className="flex items-center">
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium leading-none">On Time</p>
-                    <p className="text-sm text-muted-foreground">
-                       0 Employees
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium text-green-600">0%</div>
+             {/* TODO: Add Quick Actions Links */}
+             <div className="flex flex-col gap-2">
+                <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
+                    <div className="font-medium">Add New Employee</div>
+                    <div className="text-sm text-muted-foreground">Create a new user account</div>
                 </div>
-            </div>
+                <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
+                    <div className="font-medium">Run Payroll</div>
+                    <div className="text-sm text-muted-foreground">Process salaries for {new Date().toLocaleString('default', { month: 'long' })}</div>
+                </div>
+                 <div className="p-4 border rounded-lg bg-background hover:bg-muted/50 cursor-pointer transition-colors">
+                    <div className="font-medium">Review Documents</div>
+                    <div className="text-sm text-muted-foreground">Verify pending uploads</div>
+                </div>
+             </div>
           </CardContent>
         </Card>
       </div>

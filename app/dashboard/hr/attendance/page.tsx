@@ -1,4 +1,3 @@
-"use client"
 
 import {
   Card,
@@ -16,8 +15,34 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { db } from "@/lib/db"
 
-export default function HRAttendancePage() {
+export default async function HRAttendancePage() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Get today's attendance
+  const todayAttendance = await db.attendance.findMany({
+    where: {
+      date: today
+    },
+    include: {
+      user: {
+        select: {
+          name: true
+        }
+      }
+    },
+    orderBy: {
+      checkIn: 'asc'
+    }
+  })
+
+  const totalEmployees = await db.user.count({ where: { role: 'EMPLOYEE' } })
+  const presentCount = todayAttendance.filter(a => a.status === 'PRESENT' || a.status === 'LATE').length
+  const lateCount = todayAttendance.filter(a => a.status === 'LATE').length
+  const onLeaveCount = todayAttendance.filter(a => a.status === 'ON_LEAVE').length
+
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -29,7 +54,7 @@ export default function HRAttendancePage() {
                  <CardTitle className="text-base">Present Today</CardTitle>
              </CardHeader>
              <CardContent>
-                 <div className="text-2xl font-bold text-green-600">85/120</div>
+                 <div className="text-2xl font-bold text-green-600">{presentCount}/{totalEmployees}</div>
              </CardContent>
           </Card>
            <Card>
@@ -37,7 +62,7 @@ export default function HRAttendancePage() {
                  <CardTitle className="text-base">Late Arrivals</CardTitle>
              </CardHeader>
              <CardContent>
-                 <div className="text-2xl font-bold text-orange-600">12</div>
+                 <div className="text-2xl font-bold text-orange-600">{lateCount}</div>
              </CardContent>
           </Card>
            <Card>
@@ -45,7 +70,7 @@ export default function HRAttendancePage() {
                  <CardTitle className="text-base">On Leave</CardTitle>
              </CardHeader>
              <CardContent>
-                 <div className="text-2xl font-bold text-blue-600">8</div>
+                 <div className="text-2xl font-bold text-blue-600">{onLeaveCount}</div>
              </CardContent>
           </Card>
       </div>
@@ -65,36 +90,35 @@ export default function HRAttendancePage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                     <TableRow>
-                        <TableCell className="font-medium">Alice Johnson</TableCell>
-                        <TableCell>09:02 AM</TableCell>
-                         <TableCell><Badge variant="outline" className="text-green-600 bg-green-50 border-green-200">On Time</Badge></TableCell>
-                        <TableCell>Office</TableCell>
-                    </TableRow>
-                    <TableRow>
-                        <TableCell className="font-medium">Bob Smith</TableCell>
-                        <TableCell>09:45 AM</TableCell>
-                         <TableCell><Badge variant="outline" className="text-orange-600 bg-orange-50 border-orange-200">Late</Badge></TableCell>
-                        <TableCell>Remote</TableCell>
-                    </TableRow>
-                     <TableRow>
-                        <TableCell className="font-medium">Charlie Brown</TableCell>
-                        <TableCell>-</TableCell>
-                         <TableCell><Badge variant="destructive">Absent</Badge></TableCell>
-                        <TableCell>-</TableCell>
-                    </TableRow>
-                     <TableRow>
-                        <TableCell className="font-medium">David Wilson</TableCell>
-                        <TableCell>08:55 AM</TableCell>
-                         <TableCell><Badge variant="outline" className="text-green-600 bg-green-50 border-green-200">On Time</Badge></TableCell>
-                        <TableCell>Office</TableCell>
-                    </TableRow>
-                     <TableRow>
-                        <TableCell className="font-medium">Eva Green</TableCell>
-                        <TableCell>09:10 AM</TableCell>
-                         <TableCell><Badge variant="outline" className="text-green-600 bg-green-50 border-green-200">On Time</Badge></TableCell>
-                        <TableCell>Remote</TableCell>
-                    </TableRow>
+                    {todayAttendance.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          No attendance records for today
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      todayAttendance.map((record) => (
+                        <TableRow key={record.id}>
+                            <TableCell className="font-medium">{record.user.name || "Unknown"}</TableCell>
+                            <TableCell>{record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-'}</TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                record.status === 'PRESENT' ? 'outline' : 
+                                record.status === 'LATE' ? 'outline' :
+                                record.status === 'ON_LEAVE' ? 'secondary' :
+                                'destructive'
+                              } className={
+                                record.status === 'PRESENT' ? 'text-green-600 bg-green-50 border-green-200' :
+                                record.status === 'LATE' ? 'text-orange-600 bg-orange-50 border-orange-200' :
+                                ''
+                              }>
+                                {record.status === 'PRESENT' ? 'On Time' : record.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{record.location || '-'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                 </TableBody>
             </Table>
           </CardContent>

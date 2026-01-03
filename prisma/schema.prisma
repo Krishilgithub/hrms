@@ -97,6 +97,7 @@ model EmployeeProfile {
   employeeId     String?   @unique
   bankdetails    Json?
   dob            DateTime?
+  basicSalary    Float     @default(50000)
   
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

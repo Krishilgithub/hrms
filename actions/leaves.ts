@@ -65,3 +65,89 @@ export async function getLeaves() {
         orderBy: { createdAt: 'desc' }
     })
 }
+
+export async function approveLeave(leaveId: string) {
+    const cookieStore = await cookies()
+    const userId = cookieStore.get("user_session")?.value
+  
+    if (!userId) {
+      return { error: "Unauthorized" }
+    }
+
+    try {
+        const leave = await db.leaveRequest.findUnique({
+            where: { id: leaveId },
+            include: { user: true }
+        })
+
+        if (!leave) {
+            return { error: "Leave request not found" }
+        }
+
+        await db.leaveRequest.update({
+            where: { id: leaveId },
+            data: {
+                status: "APPROVED",
+                approvedBy: userId
+            }
+        })
+
+        // Send email notification
+        if (leave.user.email) {
+            await sendEmail(
+                leave.user.email,
+                "Leave Request Approved",
+                `<p>Hi ${leave.user.name},</p><p>Your leave request from ${new Date(leave.startDate).toLocaleDateString()} to ${new Date(leave.endDate).toLocaleDateString()} has been approved.</p>`
+            )
+        }
+
+        revalidatePath("/dashboard/hr/leaves")
+        return { success: "Leave approved successfully!" }
+    } catch (error) {
+        console.error(error)
+        return { error: "Failed to approve leave request." }
+    }
+}
+
+export async function rejectLeave(leaveId: string) {
+    const cookieStore = await cookies()
+    const userId = cookieStore.get("user_session")?.value
+  
+    if (!userId) {
+      return { error: "Unauthorized" }
+    }
+
+    try {
+        const leave = await db.leaveRequest.findUnique({
+            where: { id: leaveId },
+            include: { user: true }
+        })
+
+        if (!leave) {
+            return { error: "Leave request not found" }
+        }
+
+        await db.leaveRequest.update({
+            where: { id: leaveId },
+            data: {
+                status: "REJECTED",
+                approvedBy: userId
+            }
+        })
+
+        // Send email notification
+        if (leave.user.email) {
+            await sendEmail(
+                leave.user.email,
+                "Leave Request Rejected",
+                `<p>Hi ${leave.user.name},</p><p>Your leave request from ${new Date(leave.startDate).toLocaleDateString()} to ${new Date(leave.endDate).toLocaleDateString()} has been rejected.</p>`
+            )
+        }
+
+        revalidatePath("/dashboard/hr/leaves")
+        return { success: "Leave rejected." }
+    } catch (error) {
+        console.error(error)
+        return { error: "Failed to reject leave request." }
+    }
+}
