@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2 } from "lucide-react"
+import { Loader2, Eye, EyeOff } from "lucide-react"
 import { login } from "@/actions/login"
 
 import { Button } from "@/components/ui/button"
@@ -20,10 +20,11 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
+import Image from "next/image"
 
 const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
+  loginId: z.string().min(1, {
+    message: "Login ID/Email is required.",
   }),
   password: z.string().min(1, {
     message: "Password is required.",
@@ -33,11 +34,12 @@ const formSchema = z.object({
 export default function LoginPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(false)
+  const [showPassword, setShowPassword] = React.useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
+      loginId: "",
       password: "",
     },
   })
@@ -51,11 +53,9 @@ export default function LoginPage() {
             toast.error(data.error)
         } else if (data?.success) {
             toast.success(data.success)
-            // Redirect based on role
-            if (data.role === "ADMIN") {
+            // Redirect based on role (HR users now treated as admin)
+            if (data.role === "ADMIN" || data.role === "HR") {
                 router.push("/dashboard/admin")
-            } else if (data.role === "HR") {
-                router.push("/dashboard/hr")
             } else {
                 router.push("/dashboard/employee")
             }
@@ -68,26 +68,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Login to your account
+    <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[400px]">
+      {/* Logo Section */}
+      <div className="flex flex-col items-center space-y-2">
+        <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-lg">
+          <span className="text-white font-bold text-2xl">HRMS</span>
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">
+          Sign in Page
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Enter your email below to login to your account
-        </p>
       </div>
+      
       <div className="grid gap-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
               control={form.control}
-              name="email"
+              name="loginId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-sm font-medium">Login Id/Email :-</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" type="email" {...field} />
+                    <Input 
+                      placeholder="Enter your login ID or email" 
+                      className="h-11"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -98,29 +104,52 @@ export default function LoginPage() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-sm font-medium">Password :-</FormLabel>
                   <FormControl>
-                    <Input placeholder="••••••••" type="password" {...field} />
+                    <div className="relative">
+                      <Input 
+                        placeholder="Enter your password" 
+                        type={showPassword ? "text" : "password"}
+                        className="h-11 pr-10"
+                        {...field} 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button disabled={isLoading} type="submit" className="w-full">
+            <Button 
+              disabled={isLoading} 
+              type="submit" 
+              className="w-full h-11 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold"
+            >
               {isLoading && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Sign In
+              SIGN IN
             </Button>
           </form>
         </Form>
       </div>
-      <p className="px-8 text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-muted-foreground">
+        Don&apos;t have an Account?{" "}
         <Link
           href="/register"
-          className="hover:text-brand underline underline-offset-4"
+          className="font-semibold text-purple-600 hover:text-purple-700 underline underline-offset-4"
         >
-          Don&apos;t have an account? Sign Up
+          Sign Up
         </Link>
       </p>
     </div>

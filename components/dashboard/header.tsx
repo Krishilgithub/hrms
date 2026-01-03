@@ -77,15 +77,6 @@ export function Header({ user }: HeaderProps) {
                             <Link href="/dashboard/admin/settings">Settings</Link>
                         </DropdownMenuItem>
                     </>
-                ) : pathname?.startsWith("/dashboard/hr") ? (
-                    <>
-                         <DropdownMenuItem asChild>
-                            <Link href="/dashboard/hr/profile">Profile</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <Link href="/dashboard/hr/profile">Settings</Link>
-                        </DropdownMenuItem>
-                    </>
                 ) : (
                     <>
                         <DropdownMenuItem asChild>

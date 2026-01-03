@@ -4,18 +4,20 @@ import { db } from "@/lib/db"
 import { z } from "zod"
 import { cookies } from "next/headers"
 import { sendEmail } from "@/lib/mail"
+import { generateLoginId, generatePassword } from "@/lib/utils"
 
 const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6), // In real app: Hash this!
-  role: z.enum(["EMPLOYEE", "HR", "ADMIN"]),
-  employeeId: z.string().min(1),
+  phone: z.string().min(10),
+  password: z.string().min(6),
+  companyName: z.string().min(2),
+  companyLogo: z.string().optional(),
 })
 
 export async function register(values: z.infer<typeof registerSchema>) {
   try {
-    const { email, password, name, role, employeeId } = values
+    const { email, password, name, companyName, companyLogo, phone } = values
 
     // Check if user exists
     const existingUser = await db.user.findUnique({
@@ -25,61 +27,69 @@ export async function register(values: z.infer<typeof registerSchema>) {
     if (existingUser) {
         return { error: "User already exists with this email." }
     }
-    
-    // Check if employee ID exists (if role is employee/hr)
-    if (role !== 'ADMIN') {
-         const existingEmpId = await db.employeeProfile.findUnique({
-             where: { employeeId }
-         })
-         if (existingEmpId) {
-             return { error: "Employee ID already assigned." }
-         }
-    }
 
-    // Create User
+    // Get the current year for joining date
+    const joiningYear = new Date().getFullYear()
+
+    // Get the count of users joined this year to generate serial number
+    const usersThisYear = await db.employeeProfile.count({
+        where: {
+            joiningDate: {
+                gte: new Date(`${joiningYear}-01-01`),
+                lt: new Date(`${joiningYear + 1}-01-01`)
+            }
+        }
+    })
+
+    const serialNumber = usersThisYear + 1
+
+    // Generate Login ID based on the format from the image
+    const loginId = generateLoginId(companyName, name, joiningYear, serialNumber)
+
+    // Auto-generate password (as per note in the image)
+    const generatedPassword = generatePassword(12)
+
+    // Create User with auto-generated loginId and password
     const user = await db.user.create({
         data: {
             name,
             email,
-            password, // Plain text for demo as per seed.ts
-            role: role as "EMPLOYEE" | "HR" | "ADMIN",
-            employeeProfile: role !== 'ADMIN' ? {
+            phone,
+            password: generatedPassword, // Auto-generated password
+            loginId, // Auto-generated login ID
+            companyName,
+            companyLogo,
+            role: "ADMIN", // First user is admin (company owner)
+            employeeProfile: {
                 create: {
-                    employeeId,
+                    employeeId: loginId,
                     joiningDate: new Date(),
-                    // Default values
-                    department: "Unassigned",
-                    position:  role === 'HR' ? "HR Manager" : "Employee"
+                    department: "Management",
+                    position: "Admin"
                 }
-            } : undefined
+            }
         }
     })
 
-
-
-    // Auto-login (Create session)
-    const cookieStore = await cookies()
-    cookieStore.set("user_session", user.id, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-        path: "/",
-    })
-
-    // Send Welcome Email
+    // Send Welcome Email with Login ID and Password
     if (email) {
         await sendEmail(
             email,
-            "Welcome to Dayflow HRMS",
+            "Welcome to HRMS - Your Account Details",
             `<p>Hi ${name},</p>
-             <p>Welcome to Dayflow! Your account has been successfully created.</p>
-             <p><strong>Please log in and complete your profile details and upload necessary documents (Resume, ID Proof) to finish onboarding.</strong></p>
-             <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/employee/profile">Go to Profile</a></p>`
+             <p>Welcome to HRMS! Your account has been successfully created.</p>
+             <p><strong>Your Login Credentials:</strong></p>
+             <p><strong>Login ID:</strong> ${loginId}</p>
+             <p><strong>Temporary Password:</strong> ${generatedPassword}</p>
+             <p><strong>Note:</strong> Please save these credentials securely. You can change your password after logging in using the "Turbobooster" feature mentioned in your profile settings.</p>
+             <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login">Login Now</a></p>`
         )
     }
 
     return { 
-        success: "Account created successfully!",
+        success: "Account created successfully! Check your email for login credentials.",
+        loginId,
+        generatedPassword,
         role: user.role
     }
 

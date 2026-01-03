@@ -35,44 +35,6 @@ export const employeeNav = [
   },
 ]
 
-export const hrNav = [
-  {
-    title: "Dashboard",
-    href: "/dashboard/hr",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "My Profile",
-    href: "/dashboard/hr/profile",
-    icon: User,
-  },
-  {
-    title: "Employees",
-    href: "/dashboard/hr/employees",
-    icon: Users,
-  },
-  {
-    title: "Attendance",
-    href: "/dashboard/hr/attendance",
-    icon: Clock,
-  },
-  {
-    title: "Leaves",
-    href: "/dashboard/hr/leaves",
-    icon: Calendar,
-  },
-  {
-    title: "Recruitment",
-    href: "/dashboard/hr/recruitment",
-    icon: User,
-  },
-   {
-    title: "Payroll",
-    href: "/dashboard/hr/payroll",
-    icon: Banknote,
-  },
-]
-
 export const adminNav = [
   {
     title: "Dashboard",

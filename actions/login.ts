@@ -5,7 +5,7 @@ import { z } from "zod"
 import { redirect } from "next/navigation"
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  loginId: z.string().min(1),
   password: z.string().min(1),
 })
 
@@ -16,11 +16,19 @@ export async function login(values: z.infer<typeof loginSchema>) {
     return { error: "Invalid fields!" }
   }
 
-  const { email, password } = validatedFields.data
+  const { loginId, password } = validatedFields.data
 
-  const user = await db.user.findUnique({
-    where: { email },
+  // Try to find user by loginId or email
+  let user = await db.user.findUnique({
+    where: { loginId },
   })
+
+  // If not found by loginId, try email
+  if (!user) {
+    user = await db.user.findUnique({
+      where: { email: loginId },
+    })
+  }
 
   // In production, compare hashed password!
   // For now we compare plain text as per seed

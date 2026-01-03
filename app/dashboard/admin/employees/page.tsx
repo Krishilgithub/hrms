@@ -11,6 +11,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default async function EmployeesPage() {
     const employees = await getEmployees()
@@ -56,8 +58,9 @@ export default async function EmployeesPage() {
                                 <TableCell>{employee.employeeProfile?.position || "-"}</TableCell>
                                 <TableCell>{format(new Date(employee.createdAt), "MMM d, yyyy")}</TableCell>
                                 <TableCell className="text-right">
-                                    {/* Link to view details - can be implemented later */}
-                                    <Badge variant="secondary" className="cursor-pointer">View</Badge>
+                                    <Link href={`/dashboard/admin/employees/${employee.id}`}>
+                                        <Button variant="secondary" size="sm">View</Button>
+                                    </Link>
                                 </TableCell>
                             </TableRow>
                         ))}

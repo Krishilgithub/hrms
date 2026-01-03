@@ -37,8 +37,6 @@ import { Loader2, Plus } from "lucide-react"
 const createEmployeeSchema = z.object({
     name: z.string().min(2, "Name is required"),
     email: z.string().email("Invalid email"),
-    password: z.string().min(6, "Password min 6 chars"),
-    role: z.enum(["EMPLOYEE", "HR", "ADMIN"]),
     department: z.string().optional(),
     position: z.string().optional(),
 })
@@ -52,8 +50,6 @@ export function AddEmployeeDialog() {
         defaultValues: {
             name: "",
             email: "",
-            password: "",
-            role: "EMPLOYEE",
             department: "",
             position: ""
         }
@@ -84,7 +80,7 @@ export function AddEmployeeDialog() {
                 <DialogHeader>
                     <DialogTitle>Add New Employee</DialogTitle>
                     <DialogDescription>
-                        Create a new user account. They can login with these credentials.
+                        Create a new employee account. A secure password will be auto-generated and emailed to them.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -115,42 +111,8 @@ export function AddEmployeeDialog() {
                                 </FormItem>
                             )}
                         />
-                         <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Password</FormLabel>
-                                    <FormControl>
-                                        <Input type="password" placeholder="******" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <div className="grid grid-cols-2 gap-4">
-                             <FormField
-                                control={form.control}
-                                name="role"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Role</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select role" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                                                <SelectItem value="HR">HR Manager</SelectItem>
-                                                <SelectItem value="ADMIN">Admin</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+
+                         <div className="grid grid-cols-1 gap-4">
                              <FormField
                                 control={form.control}
                                 name="department"
@@ -164,6 +126,7 @@ export function AddEmployeeDialog() {
                                     </FormItem>
                                 )}
                             />
+                             
                          </div>
                          <FormField
                             control={form.control}

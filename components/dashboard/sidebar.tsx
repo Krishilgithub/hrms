@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { employeeNav, adminNav, hrNav } from "@/config/nav"
+import { employeeNav, adminNav } from "@/config/nav"
 import { LogOut, Settings } from "lucide-react"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -19,8 +19,6 @@ export function Sidebar({ className, role }: SidebarProps) {
   if (!currentRole) {
     if (pathname?.startsWith("/dashboard/admin")) {
       currentRole = "admin"
-    } else if (pathname?.startsWith("/dashboard/hr")) {
-      currentRole = "hr"
     } else {
       currentRole = "employee"
     }
@@ -28,7 +26,6 @@ export function Sidebar({ className, role }: SidebarProps) {
 
   let navItems = employeeNav
   if (currentRole === "admin") navItems = adminNav
-  if (currentRole === "hr") navItems = hrNav
 
   return (
     <div className={cn("pb-12 h-screen border-r bg-background", className)}>

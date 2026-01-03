@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { Role } from "@prisma/client"
+import { sendEmail } from "@/lib/mail"
+import { generatePassword } from "@/lib/utils"
 
 export async function getAdminDashboardStats() {
     // 1. Total Employees & HR
@@ -78,15 +80,16 @@ export async function getEmployees() {
 const createEmployeeSchema = z.object({
     name: z.string().min(2),
     email: z.string().email(),
-    password: z.string().min(6),
-    role: z.enum(["EMPLOYEE", "HR", "ADMIN"]),
     department: z.string().optional(),
     position: z.string().optional(),
 })
 
 export async function createEmployee(values: z.infer<typeof createEmployeeSchema>) {
     try {
-        const { name, email, password, role, department, position } = values
+        const { name, email, department, position } = values
+        
+        // Auto-generate a secure password
+        const password = generatePassword()
         
         const existingUser = await db.user.findUnique({ where: { email } })
         if (existingUser) return { error: "User with this email already exists" }
@@ -96,7 +99,7 @@ export async function createEmployee(values: z.infer<typeof createEmployeeSchema
                 name,
                 email,
                 password, // Plain text for demo
-                role: role as Role,
+                role: "EMPLOYEE", // Admin can only create employees
                 image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
                 employeeProfile: {
                     create: {
@@ -108,8 +111,39 @@ export async function createEmployee(values: z.infer<typeof createEmployeeSchema
             }
         })
 
+        // Send welcome email with login credentials
+        await sendEmail(
+            email,
+            "Welcome to HRMS - Your Login Credentials",
+            `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">Welcome to HRMS, ${name}!</h2>
+                <p>Your employee account has been created by the administrator.</p>
+                
+                <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #555;">Your Login Credentials:</h3>
+                    <p style="margin: 10px 0;"><strong>Email:</strong> ${email}</p>
+                    <p style="margin: 10px 0;"><strong>Password:</strong> ${password}</p>
+                    ${department ? `<p style="margin: 10px 0;"><strong>Department:</strong> ${department}</p>` : ''}
+                    ${position ? `<p style="margin: 10px 0;"><strong>Position:</strong> ${position}</p>` : ''}
+                </div>
+                
+                <p style="color: #666;">Please keep your credentials secure. You can change your password after logging in.</p>
+                
+                <div style="margin-top: 30px;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login" 
+                       style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        Login to Your Account
+                    </a>
+                </div>
+                
+                <p style="color: #999; font-size: 12px; margin-top: 30px;">
+                    If you have any questions, please contact your administrator.
+                </p>
+            </div>`
+        )
+
         revalidatePath("/dashboard/admin/employees")
-        return { success: "Employee created successfully!", user }
+        return { success: "Employee created successfully! Login credentials sent to their email.", user }
     } catch (error) {
         console.error(error)
         return { error: "Failed to create employee" }
@@ -244,5 +278,141 @@ export async function generatePayroll() {
     } catch (error) {
         console.error(error)
         return { error: "Failed to generate payroll." }
+    }
+}
+
+const updateEmployeeSchema = z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    department: z.string().optional(),
+    position: z.string().optional(),
+    basicSalary: z.string(),
+    dob: z.string().optional(),
+})
+
+export async function updateEmployee(employeeId: string, values: z.infer<typeof updateEmployeeSchema>) {
+    try {
+        const { name, email, phone, address, department, position, basicSalary, dob } = values
+        
+        // Check if email is being changed and if it already exists
+        const existingUser = await db.user.findFirst({
+            where: { 
+                email,
+                NOT: { id: employeeId }
+            }
+        })
+        if (existingUser) return { error: "Email already exists for another user" }
+
+        const basicSalaryFloat = parseFloat(basicSalary)
+        if (isNaN(basicSalaryFloat) || basicSalaryFloat < 0) {
+            return { error: "Invalid basic salary" }
+        }
+
+        // Get current employee data to check if salary changed
+        const currentEmployee = await db.user.findUnique({
+            where: { id: employeeId },
+            include: { employeeProfile: true }
+        })
+
+        if (!currentEmployee) {
+            return { error: "Employee not found" }
+        }
+
+        const salaryChanged = currentEmployee.employeeProfile?.basicSalary !== basicSalaryFloat
+
+        // Update user and profile
+        await db.user.update({
+            where: { id: employeeId },
+            data: {
+                name,
+                email,
+                phone,
+                employeeProfile: {
+                    upsert: {
+                        create: {
+                            phone,
+                            address,
+                            department,
+                            position,
+                            basicSalary: basicSalaryFloat,
+                            dob: dob ? new Date(dob) : null,
+                            employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`
+                        },
+                        update: {
+                            phone,
+                            address,
+                            department,
+                            position,
+                            basicSalary: basicSalaryFloat,
+                            dob: dob ? new Date(dob) : null,
+                        }
+                    }
+                }
+            }
+        })
+
+        // If salary changed, generate/update payroll for current month
+        if (salaryChanged) {
+            const now = new Date()
+            const currentMonth = now.toLocaleString('default', { month: 'long' })
+            const currentYear = now.getFullYear()
+
+            const allowances = 1200 // Fixed for demo
+            const deductions = 500  // Fixed for demo
+            const netSalary = basicSalaryFloat + allowances - deductions
+
+            // Check if payroll exists for current month
+            const existingPayroll = await db.payroll.findFirst({
+                where: {
+                    userId: employeeId,
+                    month: currentMonth,
+                    year: currentYear
+                }
+            })
+
+            if (existingPayroll) {
+                // Update existing payroll
+                await db.payroll.update({
+                    where: { id: existingPayroll.id },
+                    data: {
+                        basicSalary: basicSalaryFloat,
+                        allowances,
+                        deductions,
+                        netSalary,
+                        status: 'PROCESSED',
+                    }
+                })
+            } else {
+                // Create new payroll
+                await db.payroll.create({
+                    data: {
+                        userId: employeeId,
+                        month: currentMonth,
+                        year: currentYear,
+                        basicSalary: basicSalaryFloat,
+                        allowances,
+                        deductions,
+                        netSalary,
+                        status: 'PROCESSED',
+                    }
+                })
+            }
+        }
+
+        revalidatePath(`/dashboard/admin/employees/${employeeId}`)
+        revalidatePath(`/dashboard/admin/employees/${employeeId}/edit`)
+        revalidatePath("/dashboard/admin/employees")
+        revalidatePath("/dashboard/admin/payroll")
+        
+        return { 
+            success: salaryChanged 
+                ? "Employee updated successfully! Payroll has been automatically generated for the current month." 
+                : "Employee updated successfully!" 
+        }
+    } catch (error) {
+        console.error(error)
+        return { error: "Failed to update employee" }
     }
 }
